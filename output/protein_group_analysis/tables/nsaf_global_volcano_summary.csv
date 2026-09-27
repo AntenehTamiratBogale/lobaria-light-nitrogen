@@ -1,0 +1,5 @@
+"Contrast","n_total","n_sig","n_up","n_down","pct_sig"
+"Light: LLS vs HLS",25057,135,22,113,0.54
+"Nitrogen: N0.32 vs N1.28",25057,484,19,465,1.93
+"Transplant: RAT vs DTP",25057,329,231,98,1.31
+"Light × Nitrogen interaction",25057,136,96,40,0.54

@@ -1,0 +1,19 @@
+ID,Treatment_group,Light,Nitrogen,Experimental_set,Replicate,Original_tree,Experimental_handling,Final_tree,Final_tree_canopy_openness_percent,Light_description,Nitrogen_mM,Nitrogen_description
+RAT1,RAT,,,RAT-DTP transplantation assessment,1,Donor tree,Remained attached to donor tree,Donor tree,9.8,,,No nitrogen treatment
+RAT2,RAT,,,RAT-DTP transplantation assessment,2,Donor tree,Remained attached to donor tree,Donor tree,9.8,,,No nitrogen treatment
+RAT3,RAT,,,RAT-DTP transplantation assessment,3,Donor tree,Remained attached to donor tree,Donor tree,9.8,,,No nitrogen treatment
+DTP1,DTP,,,RAT-DTP transplantation assessment,1,Donor tree,Detached and transplanted back to donor tree,Donor tree,9.8,,,No nitrogen treatment
+DTP2,DTP,,,RAT-DTP transplantation assessment,2,Donor tree,Detached and transplanted back to donor tree,Donor tree,9.8,,,No nitrogen treatment
+DTP3,DTP,,,RAT-DTP transplantation assessment,3,Donor tree,Detached and transplanted back to donor tree,Donor tree,9.8,,,No nitrogen treatment
+N1.28-HLS1,N1.28-HLS,HLS,N1.28,Light × Nitrogen factorial experiment,1,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Higher-light recipient tree,34.0,Higher-light condition,1.28,1.28 mM NH4NO3
+N1.28-HLS2,N1.28-HLS,HLS,N1.28,Light × Nitrogen factorial experiment,2,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Higher-light recipient tree,34.0,Higher-light condition,1.28,1.28 mM NH4NO3
+N1.28-HLS3,N1.28-HLS,HLS,N1.28,Light × Nitrogen factorial experiment,3,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Higher-light recipient tree,34.0,Higher-light condition,1.28,1.28 mM NH4NO3
+N1.28-LLS1,N1.28-LLS,LLS,N1.28,Light × Nitrogen factorial experiment,1,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Lower-light recipient tree,13.2,Lower-light condition,1.28,1.28 mM NH4NO3
+N1.28-LLS2,N1.28-LLS,LLS,N1.28,Light × Nitrogen factorial experiment,2,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Lower-light recipient tree,13.2,Lower-light condition,1.28,1.28 mM NH4NO3
+N1.28-LLS3,N1.28-LLS,LLS,N1.28,Light × Nitrogen factorial experiment,3,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Lower-light recipient tree,13.2,Lower-light condition,1.28,1.28 mM NH4NO3
+N0.32-HLS1,N0.32-HLS,HLS,N0.32,Light × Nitrogen factorial experiment,1,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Higher-light recipient tree,34.0,Higher-light condition,0.32,0.32 mM NH4NO3
+N0.32-HLS2,N0.32-HLS,HLS,N0.32,Light × Nitrogen factorial experiment,2,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Higher-light recipient tree,34.0,Higher-light condition,0.32,0.32 mM NH4NO3
+N0.32-HLS3,N0.32-HLS,HLS,N0.32,Light × Nitrogen factorial experiment,3,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Higher-light recipient tree,34.0,Higher-light condition,0.32,0.32 mM NH4NO3
+N0.32-LLS1,N0.32-LLS,LLS,N0.32,Light × Nitrogen factorial experiment,1,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Lower-light recipient tree,13.2,Lower-light condition,0.32,0.32 mM NH4NO3
+N0.32-LLS2,N0.32-LLS,LLS,N0.32,Light × Nitrogen factorial experiment,2,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Lower-light recipient tree,13.2,Lower-light condition,0.32,0.32 mM NH4NO3
+N0.32-LLS3,N0.32-LLS,LLS,N0.32,Light × Nitrogen factorial experiment,3,Donor tree,"Detached, treated with NH4NO3, and transplanted to recipient tree",Lower-light recipient tree,13.2,Lower-light condition,0.32,0.32 mM NH4NO3
