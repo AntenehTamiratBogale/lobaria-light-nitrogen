@@ -14,8 +14,8 @@ make_nmds_plot<-function(pts,spiders_df,ellipse_df,grp_var,grp_levels,col_vec,pe
   x_ann<-x_rng[1]+0.68*diff(x_rng)
   y_r2 <-y_rng[1]+0.96*diff(y_rng)
   y_p  <-y_rng[1]+0.88*diff(y_rng)
-  # Figure labels use two decimal places; exact values remain in the results CSV.
-  p_label<-if(is.na(perm_p)) "P=NA" else if(perm_p<0.005) "P<0.01" else sprintf("P=%.2f",perm_p)
+  # R-squared uses two decimals and P uses three; tables retain numerical precision.
+  p_label<-if(is.na(perm_p)) "P=NA" else if(perm_p<0.001) "P<0.001" else sprintf("P=%.3f",perm_p)
   p<-ggplot()+
     geom_point(data=pts,aes(x=NMDS1,y=NMDS2,fill=.data[[grp_var]],color=.data[[grp_var]]),size=2.5,stroke=0.8,alpha=0.7)+
     geom_segment(data=spiders_df,aes(x=cntr.x,y=cntr.y,xend=NMDS1,yend=NMDS2,color=.data[[grp_var]]),linewidth=0.5,alpha=0.7)+
@@ -231,7 +231,7 @@ nmds_metaproteome_only <- add_common_y_title(row_prot, "NMDS2", text_size=14, wi
 col_T16<-(wrap_elements(.strip_label("16S amplicon data"))/(p_nmds_T16+theme(plot.margin=margin(2,0,2,2,"pt"))))+plot_layout(heights=c(0.04,1))
 col_T18<-(wrap_elements(.strip_label("18S amplicon data"))/((p_nmds_T18&theme(axis.title.y=element_blank(),axis.text.y=element_blank(),axis.ticks.y=element_blank()))+theme(plot.margin=margin(2,2,2,0,"pt"))))+plot_layout(heights=c(0.04,1))
 
-.prow<-function(tbl,term,ds,ctr,type){r<-tbl[term,];data.frame(Dataset=ds,Contrast=ctr,Term=term,Type=type,Df=r[["Df"]],SumOfSqs=round(r[["SumOfSqs"]],4),R2=round(r[["R2"]],4),F=round(r[["F"]],3),p.value=r[["Pr(>F)"]],stringsAsFactors=FALSE)}
+.prow<-function(tbl,term,ds,ctr,type){r<-tbl[term,];data.frame(Dataset=ds,Contrast=ctr,Term=term,Type=type,Df=r[["Df"]],SumOfSqs=r[["SumOfSqs"]],R2=r[["R2"]],F=r[["F"]],p.value=r[["Pr(>F)"]],stringsAsFactors=FALSE)}
 # Save sequential full-model and marginal additive-model PERMANOVA
 # results, plus the separate RAT/DTP comparison.
 perm_full_table<-bind_rows(
@@ -254,12 +254,14 @@ perm_full_table<-bind_rows(
 
   .prow(perm_trans_prot,"Transplant","Metaproteome","RAT vs DTP","Sequential=Marginal"))%>%
   mutate(sig=case_when(is.na(p.value)~"",p.value<0.001~"***",p.value<0.01~"**",p.value<0.05~"*",p.value<0.1~".",TRUE~"ns"))
+# Report marginal light and nitrogen effects throughout the publication outputs.
+# Keep the full-model interaction and the separate RAT/DTP comparison.
+perm_full_table <- perm_full_table %>%
+  filter(!(Type == "Sequential" & Term %in% c("Light", "Nitrogen", "Residual"))) %>%
+  mutate(Type = ifelse(Term == "Light:Nitrogen", "Full factorial interaction", Type))
 write.csv(perm_full_table,file.path(OUTDIR,"permanova_full_table.csv"),row.names=FALSE)
-cat("Saved: permanova_full_table.csv (factorial sequential/marginal results plus separate RAT-DTP assessment)\n")
-cat("\n--- Sequential (full model) vs Marginal (additive-model) R2 comparison ---\n")
-cat("    Light/Nitrogen main effects only — Light:Nitrogen has no Marginal row\n")
-cat("    (that term is absent from the additive refit; see note above)\n")
-print(perm_full_table%>%filter(Type%in%c("Sequential","Marginal"),Term!="Residual")%>%select(Dataset,Term,Type,R2,p.value,sig)%>%as.data.frame(),row.names=FALSE)
+cat("Saved marginal light/nitrogen tests, factorial interactions and RAT/DTP tests.\n")
+print(perm_full_table%>%filter(Term!="Residual",Contrast!="RAT vs DTP")%>%select(Dataset,Term,Type,R2,p.value,sig)%>%as.data.frame(),row.names=FALSE)
 cat("\n--- Separate RAT-DTP transplantation assessment ---\n")
 print(perm_full_table%>%filter(Contrast=="RAT vs DTP")%>%select(Dataset,Contrast,R2,p.value,sig)%>%as.data.frame(),row.names=FALSE)
 cat("Section 8 complete.\n\n")

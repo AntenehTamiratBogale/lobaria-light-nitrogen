@@ -21,10 +21,10 @@ bioc_packages <- c("phyloseq", "DESeq2", "limma")
 # vegan: diversity and PERMANOVA; ggordiplots: NMDS plots.
 # ggh4x and patchwork: figure panels; ggplot2: plotting.
 # dplyr, tidyr, tibble: data tables; RColorBrewer: plot palettes.
-# png: canopy photographs; svglite: SVG figure export.
+# png: canopy photographs; svglite: SVG figures; openxlsx: supplementary tables.
 cran_packages <- c("vegan", "ggordiplots", "ggh4x", "ggplot2",
                    "dplyr", "tidyr", "tibble", "patchwork",
-                   "RColorBrewer", "png", "svglite")
+                   "RColorBrewer", "png", "svglite", "openxlsx")
 
 missing_cran <- cran_packages[!vapply(cran_packages, requireNamespace,
                                       logical(1), quietly = TRUE)]
@@ -236,8 +236,8 @@ nitrogen_cmps<-list(
   list(name="N0.32 vs N1.28\n(HLS)",g1=c("nsaf_N0.32-HLS1","nsaf_N0.32-HLS2","nsaf_N0.32-HLS3"),g2=c("nsaf_N1.28-HLS1","nsaf_N1.28-HLS2","nsaf_N1.28-HLS3"),g1_lbl="N0.32 (HLS)",g2_lbl="N1.28 (HLS)"),
   list(name="N0.32 vs N1.28",g1=c("nsaf_N0.32-LLS1","nsaf_N0.32-LLS2","nsaf_N0.32-LLS3","nsaf_N0.32-HLS1","nsaf_N0.32-HLS2","nsaf_N0.32-HLS3"),g2=c("nsaf_N1.28-LLS1","nsaf_N1.28-LLS2","nsaf_N1.28-LLS3","nsaf_N1.28-HLS1","nsaf_N1.28-HLS2","nsaf_N1.28-HLS3"),g1_lbl="N0.32",g2_lbl="N1.28"))
 # Separate comparison of the two donor-tree groups.
-stress_cmps<-list(list(name="RAT vs DTP",g1=c("nsaf_RAT1","nsaf_RAT2","nsaf_RAT3"),g2=c("nsaf_DTP1","nsaf_DTP2","nsaf_DTP3"),g1_lbl="RAT",g2_lbl="DTP"))
-all_cmps<-c(light_cmps,nitrogen_cmps,stress_cmps)
+# The ten functional groups are compared for light and nitrogen only.
+all_cmps<-c(light_cmps,nitrogen_cmps)
 get_ctx<-function(n)dplyr::case_when(n%in%sapply(light_cmps,`[[`,"name")~"Light",n%in%sapply(nitrogen_cmps,`[[`,"name")~"Nitrogen",TRUE~"Stress")
 
 # Convert P values into the stars shown in figures and tables.

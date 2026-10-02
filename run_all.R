@@ -1,26 +1,68 @@
-# Run from the folder with the scripts, six CSV files, and two canopy PNGs.
-# The scripts run in order because later files use objects from earlier files.
-# Figures and tables are written to output/.
+# Run from the extracted folder containing the scripts and input files.
+# Save printed results, messages and warnings in a console text file.
+dir.create("output", recursive = TRUE, showWarnings = FALSE)
 
-# Load packages, specimen labels, and input data.
-source("01_setup.R")
-# Figure 2: class-level taxonomic composition.
-source("02_taxonomy.R")
-# Figures 3 and 4: NMDS and PERMANOVA.
-source("03_ordination.R")
-# Figure 5: observed richness and alpha diversity.
-source("04_alpha_diversity.R")
-# Figure 6: bacterial ASV differential abundance.
-source("05_asv_abundance.R")
-# Figure 7: global protein differential abundance.
-source("06_protein_abundance.R")
-# Figure 8: partner and functional-role contributions.
-source("07_partner_contributions.R")
-# Figure 9: the ten functional protein groups.
-source("08_functional_groups.R")
-# Fig. S1: calculate openness and draw the two-tree figure.
-source("09_canopy_openness.R")
+run_analysis <- function() {
+  console_log <- file("output/console_output.txt", open = "wt")
+  sink(console_log, split = TRUE)
+  sink(console_log, type = "message")
+  previous_warn <- getOption("warn")
+  options(warn = 1)
 
-cat("\nAnalysis finished. Package versions are listed below.\n")
-print(sessionInfo())
-writeLines(capture.output(sessionInfo()), file.path(OUTDIR, "sessionInfo.txt"))
+  # Close the log and save package versions even if a script stops.
+  on.exit({
+    writeLines(capture.output(sessionInfo()), "output/sessionInfo.txt")
+    sink(type = "message")
+    sink()
+    close(console_log)
+    options(warn = previous_warn)
+  }, add = TRUE)
+
+  tryCatch({
+    cat("Analysis started:", format(Sys.time()), "\n")
+
+    # Load packages and input data.
+    source("01_setup.R")
+    # Taxonomic composition, Figure 2.
+    source("02_taxonomy.R")
+    # NMDS and marginal PERMANOVA, Figures 3 and 4.
+    source("03_ordination.R")
+    # Observed richness and alpha diversity, Figure 5.
+    source("04_alpha_diversity.R")
+    # ASV differential abundance, Figure 6.
+    source("05_asv_abundance.R")
+    # Global protein differential abundance, Figure 7.
+    source("06_protein_abundance.R")
+    # Partner contributions, Figure 8.
+    source("07_partner_contributions.R")
+    # Functional groups with corrected annotation selection, Figure 9.
+    source("08_functional_groups.R")
+
+    # Canopy calculation and Figure S1, when photographs are present.
+    if (file.exists("lower_light_tree.png") && file.exists("higher_light_tree.png")) {
+      source("09_canopy_openness.R")
+    } else {
+      cat("Canopy photographs are absent; Figure S1 was not regenerated.\n")
+    }
+
+    # Supplementary figures and datasets.
+    source("10_supplementary.R")
+    # Supplementary figure layouts.
+    source("11_adjust_supplementary_plots.R")
+    # Volcano strips and legends.
+    source("12_volcano_strips.R")
+    # Combine Tables S1–S6 into six worksheets.
+    source("13_compact_tables.R")
+    # Figure 9 bar identities and larger text.
+    source("14_figure9_layout.R")
+
+    cat("\nAnalysis finished:", format(Sys.time()), "\n")
+    cat("\nR and package versions\n")
+    print(sessionInfo())
+  }, error = function(e) {
+    cat("\nAnalysis stopped:", conditionMessage(e), "\n")
+    stop(e)
+  })
+}
+
+run_analysis()

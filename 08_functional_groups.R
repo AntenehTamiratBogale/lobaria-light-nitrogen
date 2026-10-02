@@ -26,6 +26,14 @@ idx_PSII <- grepl(
         "psbw", "psbx", "psby", "psbz",
         "d1 protein", "d2 protein", "cp47", "cp43", sep = "|"),
   desc_filt, ignore.case = TRUE)
+# Remove cytochrome b6-f components that mention PSII in their description.
+psii_cytochrome_b6f <- idx_PSII & grepl(
+  "Component of the cytochrome b6-f complex", desc_filt, ignore.case = TRUE)
+write.csv(meta_nsaf_filt[psii_cytochrome_b6f, , drop = FALSE],
+          file.path(OUTDIR, "PSII_removed_cytochrome_b6f.csv"), row.names = FALSE)
+idx_PSII <- idx_PSII & !psii_cytochrome_b6f
+cat(sprintf("    Removed %d cytochrome b6-f protein groups from PSII.\n",
+            sum(psii_cytochrome_b6f)))
 PSII_df   <- make_family_df(idx_PSII, "PSII")
 PSII_path <- file.path(OUTDIR, "protein_group_analysis/functional_groups", "PSII_nsaf.csv")
 write.csv(PSII_df, PSII_path, row.names = FALSE)
@@ -35,11 +43,11 @@ cat(sprintf("    %d proteins | partners: %s\n\n",
             paste(sort(unique(imp_PSII$partner)), collapse = ", ")))
 
 cat("  Selecting RuBisCO_large...\n")
-idx_RuBisCO_large <- grepl(
-  paste("ribulose bisphosphate carboxylase",
-        "ribulose-1,5-bisphosphate",
-        "rubisco large", "rbcl", "rbcs", "carboxysome", sep = "|"),
-  desc_filt, ignore.case = TRUE)
+# RuBisCO large and small subunits; exclude activase, carboxysome shell proteins, RuBisCO-like proteins and subunit-modifying methyltransferases.
+RuBisCO_large_search <- "\\bribulose[- ,0-9]*bisphosphate carboxylase\\b|\\brubisco\\b|\\brbcl\\b|\\brbcs\\b"
+RuBisCO_large_exclude <- "activase|carboxysome|rubisco[- ]like|methyltransferase"
+idx_RuBisCO_large <- grepl(RuBisCO_large_search, desc_filt, ignore.case = TRUE) &
+  !grepl(RuBisCO_large_exclude, desc_filt, ignore.case = TRUE)
 RuBisCO_large_df   <- make_family_df(idx_RuBisCO_large, "RuBisCO_large")
 RuBisCO_large_path <- file.path(OUTDIR, "protein_group_analysis/functional_groups", "RuBisCO_large_nsaf.csv")
 write.csv(RuBisCO_large_df, RuBisCO_large_path, row.names = FALSE)
@@ -64,11 +72,11 @@ cat(sprintf("    %d proteins | partners: %s\n\n",
 
 cat("  Selecting Nitrogenase...\n")
 # Nitrogen metabolism: nitrogenase, urease, GS-GOGAT, arginine.
-idx_Nitrogenase <- grepl(
-  paste("nitrogenase", "nifh", "nifd", "nifk",
-        "nitrogen fixat", "dinitrogenase",
-        "nifb", "nifu", "nifs", "nifn", sep = "|"),
-  desc_filt, ignore.case = TRUE)
+# Explicit nitrogenase annotations; exclude accessory proteins and shared family annotations that do not distinguish nitrogenase from other functions.
+Nitrogenase_search <- "\\bnitrogenase\\b|\\bdinitrogenase\\b"
+Nitrogenase_exclude <- "component 1 type|nifh bchl chll|nifd.*nifk.*nife.*nifn|nifu|nifb|nifx|nfu|elongator|mia[b]|chlorophyll|protochlorophyll"
+idx_Nitrogenase <- grepl(Nitrogenase_search, desc_filt, ignore.case = TRUE) &
+  !grepl(Nitrogenase_exclude, desc_filt, ignore.case = TRUE)
 Nitrogenase_df   <- make_family_df(idx_Nitrogenase, "Nitrogenase")
 Nitrogenase_path <- file.path(OUTDIR, "protein_group_analysis/functional_groups", "Nitrogenase_nsaf.csv")
 write.csv(Nitrogenase_df, Nitrogenase_path, row.names = FALSE)
@@ -92,12 +100,11 @@ cat(sprintf("    %d proteins | partners: %s\n\n",
             paste(sort(unique(imp_Urease$partner)), collapse = ", ")))
 
 cat("  Selecting GS_GOGAT...\n")
-idx_GS_GOGAT <- grepl(
-  paste("glutamine synthetase", "glutamate synthase", "gogat",
-        "glna", "gltb", "gltd", "glutamine amidotransferase",
-        "ferredoxin-dependent glutamate synthase",
-        "nadph.*glutamate synthase", sep = "|"),
-  desc_filt, ignore.case = TRUE)
+# Explicit glutamine synthetase or glutamate synthase annotations; exclude regulators, unrelated biosynthetic enzymes and generic amidotransferases.
+GS_GOGAT_search <- "\\bglutamine synthetase\\b|\\bglutamate synthase\\b|\\bgogat\\b"
+GS_GOGAT_exclude <- "regulat|adenylyltransferase|folylpolyglutamate|anthranilate|tryptophan|pyridox|vitamin b6|pdxt|sno"
+idx_GS_GOGAT <- grepl(GS_GOGAT_search, desc_filt, ignore.case = TRUE) &
+  !grepl(GS_GOGAT_exclude, desc_filt, ignore.case = TRUE)
 GS_GOGAT_df   <- make_family_df(idx_GS_GOGAT, "GS_GOGAT")
 GS_GOGAT_path <- file.path(OUTDIR, "protein_group_analysis/functional_groups", "GS_GOGAT_nsaf.csv")
 write.csv(GS_GOGAT_df, GS_GOGAT_path, row.names = FALSE)
@@ -147,12 +154,11 @@ cat(sprintf("    %d proteins | partners: %s\n\n",
 
 cat("  Selecting Peroxiredoxin...\n")
 # Cellular stress: peroxiredoxin, GroEL/Hsp60, and catalase.
-idx_Peroxiredoxin <- grepl(
-  paste("peroxiredoxin", "thioredoxin peroxidase",
-        "1-cys peroxiredoxin", "2-cys peroxiredoxin",
-        "alkyl hydroperoxide reductase",
-        "ahpc", "ahpf", "bcp", "thiol peroxidase", sep = "|"),
-  desc_filt, ignore.case = TRUE)
+# Peroxiredoxin/AhpC proteins; exclude AhpF and proteins described only as regenerating AhpC.
+Peroxiredoxin_search <- "\\bperoxiredoxin\\b|thioredoxin peroxidase|alkyl hydroperoxide reductase|\\bahpc\\b|thiol peroxidase|ahpc.tsa"
+Peroxiredoxin_exclude <- "ahpf|regeneration of the ahpc|reduction of the ahpc"
+idx_Peroxiredoxin <- grepl(Peroxiredoxin_search, desc_filt, ignore.case = TRUE) &
+  !grepl(Peroxiredoxin_exclude, desc_filt, ignore.case = TRUE)
 Peroxiredoxin_df   <- make_family_df(idx_Peroxiredoxin, "Peroxiredoxin")
 Peroxiredoxin_path <- file.path(OUTDIR, "protein_group_analysis/functional_groups", "Peroxiredoxin_nsaf.csv")
 write.csv(Peroxiredoxin_df, Peroxiredoxin_path, row.names = FALSE)
@@ -162,10 +168,11 @@ cat(sprintf("    %d proteins | partners: %s\n\n",
             paste(sort(unique(imp_Peroxiredoxin$partner)), collapse = ", ")))
 
 cat("  Selecting GroEL_Hsp60...\n")
-idx_GroEL_Hsp60 <- grepl(
-  paste("tcp-1/cpn60", "chaperonin 60", "groel", "hsp60", "cpn60",
-        "groes", "chaperonin, 60 kd", "60 kda chaperonin", sep = "|"),
-  desc_filt, ignore.case = TRUE)
+# GroEL/Hsp60 chaperonins and explicitly annotated GroES/Cpn60 cochaperonins; exclude alcohol dehydrogenases, negative regulators, TCP-1 family and generic GroES-like domains.
+GroEL_Hsp60_search <- "chaperonin.*hsp60|chaperonin 60|\\bgroel\\b|\\bhsp60\\b|\\bcpn60\\b|groes chaperonin|chaperonin, 60 kd|60 kda chaperonin"
+GroEL_Hsp60_exclude <- "alcohol dehydrogenase|negative regulator|tcp-1|groes-like"
+idx_GroEL_Hsp60 <- grepl(GroEL_Hsp60_search, desc_filt, ignore.case = TRUE) &
+  !grepl(GroEL_Hsp60_exclude, desc_filt, ignore.case = TRUE)
 GroEL_Hsp60_df   <- make_family_df(idx_GroEL_Hsp60, "GroEL_Hsp60")
 GroEL_Hsp60_path <- file.path(OUTDIR, "protein_group_analysis/functional_groups", "GroEL_Hsp60_nsaf.csv")
 write.csv(GroEL_Hsp60_df, GroEL_Hsp60_path, row.names = FALSE)
@@ -175,10 +182,11 @@ cat(sprintf("    %d proteins | partners: %s\n\n",
             paste(sort(unique(imp_GroEL_Hsp60$partner)), collapse = ", ")))
 
 cat("  Selecting Catalase...\n")
-idx_Catalase <- grepl(
-  paste("catalase", "catalase-peroxidase", "katg",
-        "manganese containing catalase", "hydroperoxidase", sep = "|"),
-  desc_filt, ignore.case = TRUE)
+# Catalase and catalase-peroxidase annotations; hydroperoxidase alone is insufficient.
+Catalase_search <- "\\bcatalase\\b|\\bkatg\\b"
+Catalase_exclude <- "regeneration of the ahpc|reduction of the ahpc"
+idx_Catalase <- grepl(Catalase_search, desc_filt, ignore.case = TRUE) &
+  !grepl(Catalase_exclude, desc_filt, ignore.case = TRUE)
 Catalase_df   <- make_family_df(idx_Catalase, "Catalase")
 Catalase_path <- file.path(OUTDIR, "protein_group_analysis/functional_groups", "Catalase_nsaf.csv")
 write.csv(Catalase_df, Catalase_path, row.names = FALSE)
@@ -434,10 +442,10 @@ if (nrow(sig_df_fam) > 0) {
         select(family, log2FC, adj.P.Val, stars) %>%
         mutate(adj.P.Val = signif(adj.P.Val, 3), log2FC = round(log2FC, 3)),
       row.names = FALSE)
-    cat("\n  NOTE: Significant interaction supports ATP-Nitrogenase rescue hypothesis\n")
+
   } else {
     cat("\n  No significant Light x Nitrogen interaction detected.\n")
-    cat("  NOTE: Light and Nitrogen act independently on these protein families.\n")
+
   }
 
 } else {
@@ -859,8 +867,8 @@ nmet_fams  <- c("Nitrogenase", "Urease", "GS_GOGAT", "Arginine")
 
 .add_tag <- function(p, tag) {
   p + labs(tag = tag) +
-    theme(plot.tag          = element_text(size = 23, face = "bold", colour = "black"),
-          plot.tag.position = "topleft")
+    theme(plot.tag          = element_text(size = 32, face = "bold", colour = "black"),
+          plot.tag.position = c(0.02, 0.98))
 }
 
 .col_header <- function(label, fill_col, mapping_text=NULL) {
@@ -908,7 +916,7 @@ nmet_fams  <- c("Nitrogenase", "Urease", "GS_GOGAT", "Arginine")
   p + theme(legend.position = "none")
 }
 
-cat("  Stress-response and RAT-DTP plots omitted; statistics retained in tables.\n")
+cat("  RAT-DTP is excluded from the ten functional-group comparisons.\n")
 cat("Section 17 complete.\n\n")
 
 cat("\nArrange Figure 9\n")
@@ -939,14 +947,14 @@ cat("  Built N-metabolism main-effect panels (4 protein groups: Nitrogenase, Ure
 .font_fix21 <- function(p, has_legend=FALSE) {
   p <- p + theme(
     axis.text.x  = element_text(size=24, colour="black", lineheight=1.06),
-    axis.text.y  = element_text(size=15, colour="black"),
-    axis.title   = element_text(size=24),
+    axis.text.y  = element_text(size=22, colour="black"),
+    axis.title   = element_text(size=30),
     plot.title   = element_text(size=20, face="bold", hjust=0.5, lineheight=1.15),
     plot.subtitle= element_text(size=20, colour="grey35", hjust=0.5, lineheight=1.2),
     strip.text   = element_text(size=24, colour="black"),
     strip.text.y.right = element_text(size=24, face="bold", angle=90, lineheight=1.10),
     plot.margin=margin(0.5,0.5,0.5,0.5,"pt"))
-  if (has_legend) p <- p + theme(legend.text=element_text(size=22), legend.title=element_text(size=23,face="bold"),legend.margin=margin(0),legend.box.margin=margin(0),legend.box.spacing=unit(0,"pt"))
+  if (has_legend) p <- p + theme(legend.text=element_text(size=28), legend.title=element_text(size=29,face="bold"),legend.margin=margin(0),legend.box.margin=margin(0),legend.box.spacing=unit(0,"pt"))
   p
 }
 photo_light_main21 <- .font_fix21(photo_light_main21)
@@ -969,13 +977,13 @@ fig9_dir <- file.path(INDIVIDUAL_DIR,"Figure9")
 }
 
 photo_light_ind21 <- .no_cmp_strip21(photo_light_main21) +
-  labs(title="Light", subtitle="Left bar = LLS   |   Right bar = HLS")
+  labs(title=NULL, subtitle=NULL)
 photo_nitro_ind21 <- .no_cmp_strip21(photo_nitro_main21) +
-  labs(title="Nitrogen", subtitle="Left bar = N0.32   |   Right bar = N1.28")
+  labs(title=NULL, subtitle=NULL)
 nmet_light_ind21 <- .no_cmp_strip21(nmet_light_main21) +
-  labs(title="Light", subtitle="Left bar = LLS   |   Right bar = HLS")
+  labs(title=NULL, subtitle=NULL)
 nmet_nitro_ind21 <- .no_cmp_strip21(nmet_nitro_main21) +
-  labs(title="Nitrogen", subtitle="Left bar = N0.32   |   Right bar = N1.28")
+  labs(title=NULL, subtitle=NULL)
 
 save_svg(file.path(fig9_dir,"Figure9A_photosynthesis_Light"), photo_light_ind21, width=9.2, height=5.8)
 save_svg(file.path(fig9_dir,"Figure9B_N_metabolism_Light"), nmet_light_ind21, width=11.4, height=5.8)
@@ -1012,7 +1020,7 @@ save_svg(file.path(fig9_dir,"Figure9D_N_metabolism_Nitrogen"), nmet_nitro_ind21,
     annotate("rect", xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf,
              fill="grey82", colour=NA) +
     annotate("text", x=0.5, y=0.5, label=label, angle=90,
-             colour="black", fontface="bold", size=24/.pt,
+             colour="black", fontface="bold", size=32/.pt,
              hjust=0.5, vjust=0.5) +
     theme_void() +
     theme(plot.margin=margin(0,0,0,0,"pt"))
@@ -1023,16 +1031,17 @@ save_svg(file.path(fig9_dir,"Figure9D_N_metabolism_Nitrogen"), nmet_nitro_ind21,
 }
 
 pA21 <- .add_tag(.hide_x21(.no_cmp_strip21(photo_light_main21)) +
+                   labs(subtitle=NULL) +
                    theme(axis.title.y=element_blank()), "A")
 pB21 <- .add_tag(.hide_x21(.no_cmp_strip21(nmet_light_main21)) |>
-                   .strip_y(), "B")
+                   .strip_y() + labs(subtitle=NULL), "B")
 pC21 <- .add_tag(.no_cmp_strip21(photo_nitro_main21) +
+                   labs(subtitle=NULL) +
                    theme(axis.title.y=element_blank()), "C")
 pD21 <- .add_tag(.no_cmp_strip21(nmet_nitro_main21) |>
-                   .strip_y(), "D")
+                   .strip_y() + labs(subtitle=NULL), "D")
 
-left_strip_w21  <- 0.34
-right_strip_w21 <- 0.46
+left_strip_w21  <- 0.65
 col_header_h21  <- 1.02
 cell_w21_photo  <- length(photo_fams)*1.85 + 2.35
 cell_w21_nmet   <- length(nmet_fams)*1.85 + 2.35
@@ -1040,38 +1049,36 @@ cell_h21        <- 5.55
 
 hdr_photo21 <- .group_col_header21("Photosynthesis protein groups")
 hdr_nmet21 <- .group_col_header21("N metabolism protein groups")
-row_light21 <- .effect_row_header21("Light", "grey82")
-row_nitro21 <- .effect_row_header21("Nitrogen", "grey82")
 cmp_light21 <- .comparison_row_strip21("LLS vs HLS")
 cmp_nitro21 <- .comparison_row_strip21("N0.32 vs N1.28")
 
 # Combine the four main treatment panels into Figure 9.
 fig9_design21 <- "
-#AB#
-CDEF
-GHIJ
+#AB
+CDE
+FGH
 "
 
 fig_21_core <- wrap_plots(
   A=hdr_photo21, B=hdr_nmet21,
-  C=row_light21, D=pA21, E=pB21, F=cmp_light21,
-  G=row_nitro21, H=pC21, I=pD21, J=cmp_nitro21,
+  C=cmp_light21, D=pA21, E=pB21,
+  F=cmp_nitro21, G=pC21, H=pD21,
   design=fig9_design21,
-  widths=c(left_strip_w21, cell_w21_photo, cell_w21_nmet, right_strip_w21),
+  widths=c(left_strip_w21, cell_w21_photo, cell_w21_nmet),
   heights=c(col_header_h21, cell_h21, cell_h21),
   guides="collect") &
   theme(legend.position="bottom",plot.margin=margin(0),legend.margin=margin(0),legend.box.margin=margin(0),legend.box.spacing=unit(0,"pt"))
 
 fig_21 <- add_common_y_title(
-  fig_21_core, "Mean NSAF ± SE (stacked by partner)", text_size=25, width=0.022)
-fig_21_w <- left_strip_w21 + cell_w21_photo + cell_w21_nmet + right_strip_w21 + 0.06
+  fig_21_core, "Mean NSAF ± SE (stacked by partner)", text_size=32, width=0.04)
+fig_21_w <- left_strip_w21 + cell_w21_photo + cell_w21_nmet + 0.06
 fig_21_h <- col_header_h21 + cell_h21*2 + 0.06
 
 save_svg(file.path(OUTDIR,"Figure9_protein_groups"), fig_21,
          width=fig_21_w, height=fig_21_h)
 cat("Saved: Figure9_protein_groups.svg\n")
-cat("       Left strips: Light | Nitrogen (90-degree text, thin boxes)\n")
+cat("       Left strips: LLS vs HLS | N0.32 vs N1.28\n")
 cat("       Column headers show the two sets of functional groups\n")
-cat("       Far-right strips: LLS vs HLS | N0.32 vs N1.28 (one strip per row; no internal duplicates)\n")
+cat("       Bar order is explained in the figure caption.\n")
 cat("       Shared x-axis labels: lower row supplies labels for upper row\n\n")
 cat("Section 21 complete.\n\n")
