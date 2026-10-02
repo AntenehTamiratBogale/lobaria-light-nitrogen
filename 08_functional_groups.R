@@ -1082,3 +1082,9 @@ cat("       Column headers show the two sets of functional groups\n")
 cat("       Bar order is explained in the figure caption.\n")
 cat("       Shared x-axis labels: lower row supplies labels for upper row\n\n")
 cat("Section 21 complete.\n\n")
+
+# Save a JPG and PDF as well as the SVG.
+ggsave(file.path(OUTDIR, "Figure9_protein_groups.jpg"), fig_21,
+       width = fig_21_w, height = fig_21_h, dpi = 300, bg = "white")
+ggsave(file.path(OUTDIR, "Figure9_protein_groups.pdf"), fig_21,
+       width = fig_21_w, height = fig_21_h, device = cairo_pdf, bg = "white")

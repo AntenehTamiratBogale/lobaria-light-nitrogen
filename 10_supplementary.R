@@ -1,7 +1,6 @@
 # Supplementary figures and tables.
 # Run after scripts 01–08, or use source("run_all.R").
 # RAT and DTP are analysed separately from the factorial experiment.
-# No RAT/DTP tests are performed on the ten functional protein groups.
 
 cat("\nSupplementary figures and tables\n")
 library(openxlsx)
@@ -28,15 +27,6 @@ save_supp <- function(name, plot, width = 6, height = 5) {
   }
 }
 
-# Figure style: readable black text and bold panel titles.
-supp_theme <- theme_bw(base_size = 18) + theme(
-  panel.grid = element_blank(), axis.text = element_text(colour = "black"),
-  axis.title = element_text(size = 18),
-  plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
-  plot.tag = element_text(face = "bold", size = 18),
-  legend.title = element_text(face = "bold", size = 13),
-  legend.text = element_text(size = 14), plot.margin = margin(6, 6, 6, 6))
-
 # Widen the specimen bars and keep compact legends on the right.
 taxonomy_panel <- function(plot, title) {
   for (i in seq_along(plot$layers)) {
@@ -58,14 +48,6 @@ taxonomy_panel <- function(plot, title) {
 tax_T16 <- taxonomy_panel(p_tax_16S_T, "16S amplicons")
 tax_T18 <- taxonomy_panel(p_tax_18S_T, "18S amplicons")
 tax_T18_noA <- taxonomy_panel(p_tax_18S_noA_T, "18S without Ascomycota")
-
-# Shared axis titles; each NMDS keeps the scale of its own ordination.
-shared_axes <- function(plot, x, y) {
-  plot <- add_common_y_title(plot, y, text_size = 18, width = 0.025)
-  x_title <- grid::textGrob(x, gp = grid::gpar(fontsize = 18, col = "black"))
-  patchwork::wrap_plots(plot, patchwork::wrap_elements(full = x_title),
-                       ncol = 1, heights = c(1, 0.075))
-}
 # 18S retains the all-specimen NMDS coordinates from script 03.
 # Its PERMANOVA uses only the six RAT/DTP specimens.
 nmds_T16 <- p_nmds_T16 + labs(title = "16S amplicons", x = NULL, y = NULL) + supp_theme + theme(legend.position = "none")
@@ -96,55 +78,7 @@ alpha_A <- alpha_A + theme(axis.text.x = element_blank(), axis.ticks.x = element
 alpha_B <- alpha_B + theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
 alpha_C <- alpha_C + labs(title = NULL)
 alpha_D <- alpha_D + labs(title = NULL)
-
-
-# Eukaryotic ASV differential abundance, using unrarefied counts.
-# Positive fold changes mean greater abundance in HLS, N1.28 or DTP.
-dds_18S_main <- DESeq(phyloseq_to_deseq2(ps_treated_18S, ~ Nitrogen + Light),
-                      test = "Wald", fitType = "parametric")
-dds_18S_T <- DESeq(phyloseq_to_deseq2(ps_transplant_18S, ~ Transplant),
-                   test = "Wald", fitType = "parametric")
-dds_18S_LN <- DESeq(phyloseq_to_deseq2(ps_treated_18S, ~ Nitrogen * Light),
-                    test = "Wald", fitType = "parametric")
-int_name_18S <- grep("Nitrogen.*Light|Light.*Nitrogen", resultsNames(dds_18S_LN), value = TRUE)
-
-# Add ASV identity, class assignment and significance to each results table.
-asv_results <- function(model, coefficient) {
-  result <- as.data.frame(results(model, name = coefficient, alpha = VOLCANO_FDR))
-  result$ASV <- rownames(result)
-  result$Class <- tax_df_18S[result$ASV, "Class"]
-  result$neg_logp <- -log10(pmax(result$padj, 1e-300))
-  result$significant <- !is.na(result$padj) & result$padj < VOLCANO_FDR &
-                        abs(result$log2FoldChange) >= VOLCANO_LOG2FC
-  result
-}
-res_18S_L <- asv_results(dds_18S_main, "Light_HLS_vs_LLS")
-res_18S_N <- asv_results(dds_18S_main, "Nitrogen_N1.28_vs_N0.32")
-res_18S_T <- asv_results(dds_18S_T, "Transplant_DTP_vs_RAT")
-res_18S_LN <- asv_results(dds_18S_LN, int_name_18S)
-
-# Colour significant amplicon ASVs by class; use grey for other ASVs.
-# The 18S class colours match the supplementary 18S taxonomy panel.
-top_classes_18S <- ps_18S_T %>% tax_top(n = 15, rank = "Class") %>% sort()
-vol_colors_18S <- setNames(colors_18S[seq_along(top_classes_18S)], top_classes_18S)
-ampl_volcano <- function(result, palette, title) {
-  significant <- result[result$significant & is.finite(result$log2FoldChange) &
-                          is.finite(result$neg_logp), ]
-  nonsignificant <- result[!result$significant & is.finite(result$log2FoldChange) &
-                             is.finite(result$neg_logp), ]
-  missing_classes <- setdiff(unique(as.character(significant$Class)), names(palette))
-  missing_classes <- missing_classes[!is.na(missing_classes)]
-  palette <- c(palette, setNames(rep("grey35", length(missing_classes)), missing_classes))
-  ggplot() +
-    geom_point(data = nonsignificant, aes(log2FoldChange, neg_logp),
-               colour = "grey65", size = 1.4, alpha = 0.65) +
-    geom_point(data = significant, aes(log2FoldChange, neg_logp, colour = Class),
-               size = 1.4, alpha = 0.8) +
-    scale_colour_manual(values = palette, na.value = "grey35", name = "Class") +
-    geom_vline(xintercept = c(-1, 1), linetype = "dashed", colour = "grey45") +
-    geom_hline(yintercept = -log10(0.05), linetype = "dashed", colour = "grey45") +
-    labs(title = title, x = NULL, y = NULL) + supp_theme
-}
+# Prepare the three supplementary volcano panels.
 vol_T16 <- ampl_volcano(res_16S_T, vol_colors_16S, "16S amplicons")
 vol_T18 <- ampl_volcano(res_18S_T, vol_colors_18S, "18S amplicons")
 vol_Tmeta <- p_vol_transplant + labs(title = "Metaproteome", x = NULL, y = NULL) + supp_theme
@@ -159,6 +93,33 @@ wide_volcano <- function(plot) {
 vol_T16 <- wide_volcano(vol_T16)
 vol_T18 <- wide_volcano(vol_T18)
 vol_Tmeta <- wide_volcano(vol_Tmeta)
+# Save exactly four combined RAT/DTP supplementary figures.
+# S1 remains the existing canopy figure. The new figures are S2–S5.
+fig_s2_core <- (tax_T16 | tax_T18 | tax_T18_noA) + plot_annotation(tag_levels = "A")
+fig_s2_core <- fig_s2_core & theme(plot.tag = element_text(face = "bold", size = 18))
+fig_s2 <- shared_axes(fig_s2_core, "Specimen", "Relative abundance")
+fig_s3_core <- (nmds_T16 | nmds_T18 | nmds_Tmeta) + plot_annotation(tag_levels = "A")
+fig_s3 <- shared_axes(fig_s3_core, "NMDS1", "NMDS2")
+# Separate y-axis titles for richness and alpha diversity, shared within rows.
+alpha_top <- (alpha_A | alpha_B) + plot_annotation(tag_levels = list(c("A", "B")))
+alpha_bottom <- (alpha_C | alpha_D) + plot_annotation(tag_levels = list(c("C", "D")))
+alpha_top <- add_common_y_title(alpha_top, "Observed ASV richness", text_size = 18, width = 0.05)
+alpha_bottom <- add_common_y_title(alpha_bottom, "Alpha diversity", text_size = 18, width = 0.05)
+fig_s4 <- alpha_top / alpha_bottom
+save_supp("FigureS2_RAT_DTP_taxonomy", fig_s2, 14, 5.5)
+save_supp("FigureS3_RAT_DTP_NMDS", fig_s3, 10.5, 4.5)
+save_supp("FigureS4_RAT_DTP_alpha_diversity", fig_s4, 9, 7.5)
+
+# Supplementary Fig. S5: three RAT/DTP panels, with common axis titles.
+s5_A <- volcano_strips(vol_T16, "RAT", "DTP", col_RAT, col_DTP)
+s5_B <- volcano_strips(vol_T18, "RAT", "DTP", col_RAT, col_DTP)
+s5_C <- volcano_strips(vol_Tmeta, "RAT", "DTP", col_RAT, col_DTP)
+fig_s5_core <- (s5_A | s5_B | s5_C) + plot_annotation(tag_levels = "A")
+fig_s5 <- shared_axes(fig_s5_core, "Log2 fold change (DTP / RAT)", "−log10 adjusted P")
+save_supp("FigureS5_RAT_DTP_volcano", fig_s5, 14.8, 4.8)
+# Save the separate 18S RAT/DTP volcano panel.
+save_volcano(file.path(OUTDIR, "volcano_panels", "18S_RAT_DTP"),
+  s5_B + labs(x = "Log2 fold change (DTP / RAT)", y = "−log10 adjusted P"), 5.5, 3.5)
 
 
 # Class-level relative abundances and Wilcoxon tests.
@@ -209,26 +170,6 @@ class_interaction <- function(ps) {
   })
   bind_rows(result)
 }
-
-# Save exactly four combined RAT/DTP supplementary figures.
-# S1 remains the existing canopy figure. The new figures are S2–S5.
-fig_s2_core <- (tax_T16 | tax_T18 | tax_T18_noA) + plot_annotation(tag_levels = "A")
-fig_s2_core <- fig_s2_core & theme(plot.tag = element_text(face = "bold", size = 18))
-fig_s2 <- shared_axes(fig_s2_core, "Specimen", "Relative abundance")
-fig_s3_core <- (nmds_T16 | nmds_T18 | nmds_Tmeta) + plot_annotation(tag_levels = "A")
-fig_s3 <- shared_axes(fig_s3_core, "NMDS1", "NMDS2")
-# Separate y-axis titles for richness and alpha diversity, shared within rows.
-alpha_top <- (alpha_A | alpha_B) + plot_annotation(tag_levels = list(c("A", "B")))
-alpha_bottom <- (alpha_C | alpha_D) + plot_annotation(tag_levels = list(c("C", "D")))
-alpha_top <- add_common_y_title(alpha_top, "Observed ASV richness", text_size = 18, width = 0.05)
-alpha_bottom <- add_common_y_title(alpha_bottom, "Alpha diversity", text_size = 18, width = 0.05)
-fig_s4 <- alpha_top / alpha_bottom
-fig_s5_core <- (vol_T16 | vol_T18 | vol_Tmeta) + plot_annotation(tag_levels = "A")
-fig_s5 <- shared_axes(fig_s5_core, "Log2 fold change (DTP / RAT)", "−log10 adjusted P")
-save_supp("FigureS2_RAT_DTP_taxonomy", fig_s2, 14, 5.5)
-save_supp("FigureS3_RAT_DTP_NMDS", fig_s3, 10.5, 4.5)
-save_supp("FigureS4_RAT_DTP_alpha_diversity", fig_s4, 9, 7.5)
-save_supp("FigureS5_RAT_DTP_volcano", fig_s5, 14, 5.5)
 
 # Dispersion tests accompanying PERMANOVA.
 # Test each grouping separately, using its corresponding distance matrix.
@@ -397,3 +338,43 @@ writeLines(c(
   "\\hline", "Dataset & Df & $R^2$ & Pseudo-$F$ & \\textit{P} \\\\",
   "\\hline", latex_rows, "\\hline", "\\end{tabular}", "\\end{table}"),
   file.path(OUTDIR, "TableS2_RAT_DTP_PERMANOVA.tex"))
+
+# Keep Supplementary Tables S1–S6 in six worksheets.
+# Sections A, B and C stay within their respective table worksheet.
+cat("\nCombine supplementary table sections into six worksheets\n")
+table_path <- file.path(OUTDIR, "Supplementary_Tables_S1-S6.xlsx")
+table_names <- getSheetNames(table_path)
+table_workbook <- createWorkbook()
+for (table_number in 1:6) {
+  name <- paste0("S", table_number)
+  sections <- table_names[grepl(paste0("^", name, "[A-Z_]"), table_names)]
+  addWorksheet(table_workbook, name)
+  writeData(table_workbook, name, paste("Supplementary Table", name), startRow = 1)
+  addStyle(table_workbook, name, createStyle(textDecoration = "bold"), rows = 1, cols = 1)
+  next_row <- 3
+  for (section in sections) {
+    values <- read.xlsx(table_path, sheet = section, startRow = 3, check.names = FALSE)
+    names(values) <- sub("Functional.subset", "Protein.group", names(values), fixed = TRUE)
+    for (column in names(values)) {
+      if (is.character(values[[column]])) {
+        values[[column]] <- gsub("Photobiont", "Phycobiont", values[[column]], fixed = TRUE)
+        if (section == "S3A_Keywords" && !grepl("keyword|search", column, ignore.case = TRUE))
+          values[[column]] <- gsub("final subset", "final functional group", values[[column]], fixed = TRUE)
+      }
+    }
+    writeData(table_workbook, name, section, startRow = next_row)
+    writeData(table_workbook, name, values, startRow = next_row + 1)
+    addStyle(table_workbook, name, createStyle(textDecoration = "bold"), rows = next_row, cols = 1)
+    addStyle(table_workbook, name, createStyle(textDecoration = "bold", wrapText = TRUE),
+             rows = next_row + 1, cols = seq_len(ncol(values)), gridExpand = TRUE)
+    numeric_columns <- which(vapply(values, is.numeric, logical(1)))
+    if (length(numeric_columns) && nrow(values))
+      addStyle(table_workbook, name, createStyle(numFmt = "General"),
+               rows = next_row + 1 + seq_len(nrow(values)), cols = numeric_columns, gridExpand = TRUE)
+    next_row <- next_row + nrow(values) + 4
+  }
+  freezePane(table_workbook, name, firstActiveRow = 5)
+  setColWidths(table_workbook, name, cols = 1:30, widths = 24)
+}
+saveWorkbook(table_workbook, table_path, overwrite = TRUE)
+cat("Saved Supplementary Tables S1–S6 with six worksheets.\n")

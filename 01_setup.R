@@ -431,3 +431,70 @@ write.csv(all_global_raw,file.path(OUTDIR,"protein_group_analysis/tables/global_
 write.csv(all_global_raw%>%filter(significant==TRUE),file.path(OUTDIR,"protein_group_analysis/tables/global_nsaf_limma_significant.csv"),row.names=FALSE)
 cat("Saved: global_nsaf_limma_all.csv | global_nsaf_limma_significant.csv\n")
 cat("Section 6 complete.\n\n")
+
+# Figure style: readable black text and bold panel titles.
+supp_theme <- theme_bw(base_size = 18) + theme(
+  panel.grid = element_blank(), axis.text = element_text(colour = "black"),
+  axis.title = element_text(size = 18),
+  plot.title = element_text(face = "bold", size = 18, hjust = 0.5),
+  plot.tag = element_text(face = "bold", size = 18),
+  legend.title = element_text(face = "bold", size = 13),
+  legend.text = element_text(size = 14), plot.margin = margin(6, 6, 6, 6))
+
+# Shared axis titles; each NMDS keeps the scale of its own ordination.
+shared_axes <- function(plot, x, y) {
+  plot <- add_common_y_title(plot, y, text_size = 18, width = 0.025)
+  x_title <- grid::textGrob(x, gp = grid::gpar(fontsize = 18, col = "black"))
+  patchwork::wrap_plots(plot, patchwork::wrap_elements(full = x_title),
+                       ncol = 1, heights = c(1, 0.075))
+}
+
+# Replace the old labels inside each plot with three strips above it.
+volcano_strips <- function(plot, left, right, left_colour, right_colour, arrow = TRUE) {
+  old_labels <- vapply(plot$layers, function(layer) {
+    labels <- layer$aes_params$label
+    if (is.null(labels) && is.data.frame(layer$data)) labels <- layer$data$label
+    inherits(layer$geom, "GeomText") && !is.null(labels) &&
+      any(grepl("LLS|HLS|N0\\.32|N1\\.28|RAT|DTP|Negative interaction|Positive interaction", labels))
+  }, logical(1))
+  plot$layers <- plot$layers[!old_labels]
+  panel <- ggplot_build(plot)$layout$panel_params[[1]]
+  xr <- panel$x.range
+  yr <- panel$y.range
+  xr <- c(min(xr[1], -1.2), max(xr[2], 1.2))
+  height <- diff(yr)
+  strip_bottom <- yr[2] + 0.02 * height
+  strip_top <- yr[2] + 0.10 * height
+  strip_middle <- (strip_bottom + strip_top) / 2
+
+  # Plotmath arrows also work in the PDF export.
+  left_label <- if (arrow) paste0('"" %up% bold("', left, '")') else left
+  right_label <- if (arrow) paste0('"" %up% bold("', right, '")') else right
+
+  plot +
+    annotate("rect", xmin = xr[1], xmax = -1, ymin = strip_bottom,
+             ymax = strip_top, fill = left_colour, colour = NA) +
+    annotate("rect", xmin = -1, xmax = 1, ymin = strip_bottom,
+             ymax = strip_top, fill = "grey85", colour = NA) +
+    annotate("rect", xmin = 1, xmax = xr[2], ymin = strip_bottom,
+             ymax = strip_top, fill = right_colour, colour = NA) +
+    annotate("text", x = (xr[1] - 1) / 2, y = strip_middle,
+             label = left_label, parse = arrow, size = 9 / .pt,
+             colour = "white", fontface = "bold") +
+    annotate("text", x = (1 + xr[2]) / 2, y = strip_middle,
+             label = right_label, parse = arrow, size = 9 / .pt,
+             colour = "white", fontface = "bold") +
+    coord_cartesian(xlim = xr, ylim = yr, expand = FALSE, clip = "off") +
+    labs(subtitle = " ") +
+    theme(plot.subtitle = element_text(size = 1, margin = margin(b = 30)),
+          plot.margin = margin(6, 6, 6, 6), legend.position = "right")
+}
+
+# Save JPG, PDF and SVG versions of the main figures.
+save_volcano <- function(path, plot, width, height) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  for (extension in c("jpg", "pdf", "svg")) {
+    ggsave(paste0(path, ".", extension), plot,
+           width = width, height = height, dpi = 300, bg = "white")
+  }
+}

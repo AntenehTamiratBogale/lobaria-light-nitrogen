@@ -72,3 +72,49 @@ write.csv(global_vol_summary,file.path(OUTDIR,"protein_group_analysis/tables/nsa
 cat("Section 11 complete.\n\n")
 
 save_svg(file.path(OUTDIR,"Figure7_metaproteome_volcano"), p_vol_light_nitrogen, width=6.75, height=3.40)
+
+# Global metaproteome panels; no ten-functional-group comparisons are changed.
+vmeta_light <- volcano_strips(p_vol_light, "LLS", "HLS", col_LLS, col_HLS)
+vmeta_nitrogen <- volcano_strips(p_vol_nitrogen, "N0.32", "N1.28", col_N0.32, col_N1.28)
+vmeta_transplant <- volcano_strips(p_vol_transplant, "RAT", "DTP", col_RAT, col_DTP)
+vmeta_interaction <- volcano_strips(p_vol_interaction, "Negative interaction", "Positive interaction",
+                                   "grey80", "grey65", arrow = FALSE)
+
+# Figure 7 has single-line axis titles and one grey legend below both panels.
+meta_A <- vmeta_light +
+  labs(x = expression(Log[2]~"fold change (HLS / LLS)"))
+meta_B <- vmeta_nitrogen +
+  labs(x = expression(Log[2]~"fold change (N1.28 / N0.32)")) +
+  theme(axis.title.y = element_blank())
+# Use the same partner scale in both panels to collect one legend.
+partner_scale <- scale_colour_manual(values = partner_colors,
+  limits = partner_levels, drop = FALSE, name = "Partner")
+meta_A <- meta_A + partner_scale + guides(colour = guide_legend(nrow = 1))
+meta_B <- meta_B + partner_scale + guides(colour = guide_legend(nrow = 1))
+fig7 <- ((meta_A | meta_B) + plot_layout(guides = "collect") +
+  plot_annotation(tag_levels = "A")) &
+  theme(legend.position = "bottom", legend.direction = "horizontal",
+    plot.title = element_text(size = 10, face = "bold", hjust = 0.5),
+    plot.tag = element_text(size = 12, face = "bold"),
+    axis.title = element_text(size = 9), axis.text = element_text(size = 8),
+    legend.text = element_text(size = 6.5), legend.title = element_text(size = 7),
+    legend.key.width = unit(6, "pt"), legend.key.height = unit(7, "pt"),
+    legend.spacing.x = unit(0, "pt"), legend.margin = margin(2, 2, 2, 2),
+    legend.box.background = element_rect(fill = "grey90", colour = "grey65"),
+    legend.background = element_rect(fill = "grey90", colour = NA),
+    legend.key = element_rect(fill = "grey90", colour = NA),
+    legend.box.margin = margin(2, 3, 2, 3),
+    legend.box.spacing = unit(8, "pt"))
+save_volcano(file.path(OUTDIR, "Figure7_metaproteome_volcano"), fig7, 4.8, 3.5)
+
+# Save individual metaproteome volcano panels.
+protein_volcano_panels <- list(
+  "Metaproteome_Light" = vmeta_light, "Metaproteome_Nitrogen" = vmeta_nitrogen,
+  "Metaproteome_RAT_DTP" = vmeta_transplant, "Metaproteome_Interaction" = vmeta_interaction)
+for (name in names(protein_volcano_panels)) {
+  save_volcano(file.path(OUTDIR, "volcano_panels", name), protein_volcano_panels[[name]], 5.5, 3.5)
+}
+
+# Keep the existing Figure 7 individual-panel filenames up to date.
+save_volcano(file.path(INDIVIDUAL_DIR, "Figure7", "Figure7A_metaproteome_Light"), vmeta_light, 4.2, 3.1)
+save_volcano(file.path(INDIVIDUAL_DIR, "Figure7", "Figure7B_metaproteome_Nitrogen"), vmeta_nitrogen, 4.2, 3.1)

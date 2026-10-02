@@ -127,4 +127,93 @@ p_16LN <- ggplot()+
   annotate("text",x=Inf,y=Inf,label="Positive interaction",hjust=1.05,vjust=1.25,fontface="bold",size=3.5)+
   labs(title="16S — Light × Nitrogen interaction",x="Interaction log2 fold change",y=expression(-log[10](adjusted~italic(p))))+volcano_theme_compact
 
-save_svg(file.path(OUTDIR,"Figure6_16S_light_volcano"), p_16L, width=4.00, height=2.80)
+
+# Eukaryotic ASV differential abundance, using unrarefied counts.
+# Positive fold changes mean greater abundance in HLS, N1.28 or DTP.
+dds_18S_main <- DESeq(phyloseq_to_deseq2(ps_treated_18S, ~ Nitrogen + Light),
+                      test = "Wald", fitType = "parametric")
+dds_18S_T <- DESeq(phyloseq_to_deseq2(ps_transplant_18S, ~ Transplant),
+                   test = "Wald", fitType = "parametric")
+dds_18S_LN <- DESeq(phyloseq_to_deseq2(ps_treated_18S, ~ Nitrogen * Light),
+                    test = "Wald", fitType = "parametric")
+int_name_18S <- grep("Nitrogen.*Light|Light.*Nitrogen", resultsNames(dds_18S_LN), value = TRUE)
+
+# Add ASV identity, class assignment and significance to each results table.
+asv_results <- function(model, coefficient) {
+  result <- as.data.frame(results(model, name = coefficient, alpha = VOLCANO_FDR))
+  result$ASV <- rownames(result)
+  result$Class <- tax_df_18S[result$ASV, "Class"]
+  result$neg_logp <- -log10(pmax(result$padj, 1e-300))
+  result$significant <- !is.na(result$padj) & result$padj < VOLCANO_FDR &
+                        abs(result$log2FoldChange) >= VOLCANO_LOG2FC
+  result
+}
+res_18S_L <- asv_results(dds_18S_main, "Light_HLS_vs_LLS")
+res_18S_N <- asv_results(dds_18S_main, "Nitrogen_N1.28_vs_N0.32")
+res_18S_T <- asv_results(dds_18S_T, "Transplant_DTP_vs_RAT")
+res_18S_LN <- asv_results(dds_18S_LN, int_name_18S)
+
+# Colour significant amplicon ASVs by class; use grey for other ASVs.
+# The 18S class colours match the supplementary 18S taxonomy panel.
+top_classes_18S <- ps_18S_T %>% tax_top(n = 15, rank = "Class") %>% sort()
+vol_colors_18S <- setNames(colors_18S[seq_along(top_classes_18S)], top_classes_18S)
+ampl_volcano <- function(result, palette, title) {
+  significant <- result[result$significant & is.finite(result$log2FoldChange) &
+                          is.finite(result$neg_logp), ]
+  nonsignificant <- result[!result$significant & is.finite(result$log2FoldChange) &
+                             is.finite(result$neg_logp), ]
+  missing_classes <- setdiff(unique(as.character(significant$Class)), names(palette))
+  missing_classes <- missing_classes[!is.na(missing_classes)]
+  palette <- c(palette, setNames(rep("grey35", length(missing_classes)), missing_classes))
+  ggplot() +
+    geom_point(data = nonsignificant, aes(log2FoldChange, neg_logp),
+               colour = "grey65", size = 1.4, alpha = 0.65) +
+    geom_point(data = significant, aes(log2FoldChange, neg_logp, colour = Class),
+               size = 1.4, alpha = 0.8) +
+    scale_colour_manual(values = palette, na.value = "grey35", name = "Class") +
+    geom_vline(xintercept = c(-1, 1), linetype = "dashed", colour = "grey45") +
+    geom_hline(yintercept = -log10(0.05), linetype = "dashed", colour = "grey45") +
+    labs(title = title, x = NULL, y = NULL) + supp_theme
+}
+
+# Amplicon panels. LLS, N0.32 and RAT remain on the left.
+v16_light <- volcano_strips(p_16L, "LLS", "HLS", col_LLS, col_HLS)
+v16_nitrogen <- volcano_strips(p_16N, "N0.32", "N1.28", col_N0.32, col_N1.28)
+v16_transplant <- volcano_strips(p_16T, "RAT", "DTP", col_RAT, col_DTP)
+v16_interaction <- volcano_strips(p_16LN, "Negative interaction", "Positive interaction",
+                                  "grey80", "grey65", arrow = FALSE)
+
+# Draw 18S volcano plots.
+p18_light <- ampl_volcano(res_18S_L, vol_colors_18S, "18S — Light") +
+  labs(x = "Log2 fold change (HLS / LLS)", y = "−log10 adjusted P")
+p18_nitrogen <- ampl_volcano(res_18S_N, vol_colors_18S, "18S — Nitrogen") +
+  labs(x = "Log2 fold change (N1.28 / N0.32)", y = "−log10 adjusted P")
+p18_interaction <- ampl_volcano(res_18S_LN, vol_colors_18S, "18S — Light × Nitrogen") +
+  labs(x = "Interaction log2 fold change", y = "−log10 adjusted P")
+v18_light <- volcano_strips(p18_light, "LLS", "HLS", col_LLS, col_HLS)
+v18_nitrogen <- volcano_strips(p18_nitrogen, "N0.32", "N1.28", col_N0.32, col_N1.28)
+v18_interaction <- volcano_strips(p18_interaction, "Negative interaction", "Positive interaction",
+                                  "grey80", "grey65", arrow = FALSE)
+
+# Keep the class legend shorter than the plotting panel.
+v16_light <- v16_light +
+  labs(x = expression(Log[2]~"fold change (HLS / LLS)")) +
+  theme(plot.title = element_text(size = 12, face = "bold"),
+    axis.title = element_text(size = 10), axis.text = element_text(size = 9),
+    legend.title = element_text(size = 9, face = "bold"),
+    legend.text = element_text(size = 7),
+    legend.key.height = unit(8, "pt"), legend.key.width = unit(7, "pt"),
+    legend.spacing.y = unit(0, "pt"), legend.margin = margin(2, 2, 2, 2),
+    legend.box.spacing = unit(3, "pt")) +
+  guides(colour = guide_legend(ncol = 1, override.aes = list(size = 1.5)))
+save_volcano(file.path(OUTDIR, "Figure6_16S_light_volcano"), v16_light, 4.2, 3.5)
+
+# Save individual ASV volcano panels.
+asv_volcano_panels <- list(
+  "16S_Light" = v16_light, "16S_Nitrogen" = v16_nitrogen,
+  "16S_RAT_DTP" = v16_transplant, "16S_Interaction" = v16_interaction,
+  "18S_Light" = v18_light, "18S_Nitrogen" = v18_nitrogen,
+  "18S_Interaction" = v18_interaction)
+for (name in names(asv_volcano_panels)) {
+  save_volcano(file.path(OUTDIR, "volcano_panels", name), asv_volcano_panels[[name]], 5.5, 3.5)
+}

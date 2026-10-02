@@ -47,14 +47,6 @@ run_analysis <- function() {
 
     # Supplementary figures and datasets.
     source("10_supplementary.R")
-    # Supplementary figure layouts.
-    source("11_adjust_supplementary_plots.R")
-    # Volcano strips and legends.
-    source("12_volcano_strips.R")
-    # Combine Tables S1–S6 into six worksheets.
-    source("13_compact_tables.R")
-    # Figure 9 bar identities and larger text.
-    source("14_figure9_layout.R")
 
     cat("\nAnalysis finished:", format(Sys.time()), "\n")
     cat("\nR and package versions\n")
